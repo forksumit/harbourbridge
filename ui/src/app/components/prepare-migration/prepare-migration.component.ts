@@ -110,6 +110,10 @@ export class PrepareMigrationComponent implements OnInit {
           name: 'Minimal downtime Migration',
           value: MigrationTypes.lowDowntimeMigration,
         },
+        {
+          name: 'Migration via Dataproc',
+          value: MigrationTypes.dataprocMigration,
+        },
       ]
     } else {
       this.selectedMigrationType = MigrationTypes.bulkMigration
@@ -166,6 +170,10 @@ export class PrepareMigrationComponent implements OnInit {
             name: 'Minimal downtime Migration',
             value: MigrationTypes.lowDowntimeMigration,
           },
+          {
+            name: 'Migration via Dataproc',
+            value: MigrationTypes.dataprocMigration
+          }
         ]
         if (this.connectionType == InputType.DumpFile) {
           this.selectedMigrationType = MigrationTypes.bulkMigration
@@ -383,6 +391,7 @@ export class PrepareMigrationComponent implements OnInit {
     })
   }
 
+  //TODO: eenclona@ will check whether this needs to be updated
   openTargetDetailsForm() {
     let spannerDetails: ISpannerDetails = {
       Region: this.region,
@@ -432,6 +441,7 @@ export class PrepareMigrationComponent implements OnInit {
     })
   }
 
+  //TODO: eenclona@ will update with dataproc data only vs schema only vs data and schema
   migrate() {
     this.resetValues()
     let payload: IMigrationDetails = {
