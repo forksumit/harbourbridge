@@ -110,3 +110,10 @@ export const Dataflow = {
   HostProjectId: 'hostProjectId',
   IsDataflowConfigSet: 'isDataflowConfigSet',
 }
+
+export const Dataproc = {
+  Subnetwork: 'subnetwork',
+  Hostname: 'hostname',
+  Port: 'port',
+  IsDataprocConfigSet: 'isDataprocConfigSet',
+}

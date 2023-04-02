@@ -6,15 +6,16 @@ import { SnackbarService } from 'src/app/services/snackbar/snackbar.service'
 import ITargetDetails from 'src/app/model/target-details'
 import { ISessionSummary, ISpannerDetails } from 'src/app/model/conv'
 import IMigrationDetails, { IGeneratedResources, IProgress, ISourceAndTargetDetails } from 'src/app/model/migrate'
-import { Dataflow, InputType, MigrationDetails, MigrationModes, MigrationTypes, ProgressStatus, SourceDbNames, TargetDetails } from 'src/app/app.constants'
+import { Dataflow, Dataproc, InputType, MigrationDetails, MigrationModes, MigrationTypes, ProgressStatus, SourceDbNames, TargetDetails } from 'src/app/app.constants'
 import { interval, Subscription } from 'rxjs'
 import { DataService } from 'src/app/services/data/data.service'
 import { ConnectionProfileFormComponent } from '../connection-profile-form/connection-profile-form.component'
 import { SourceDetailsFormComponent } from '../source-details-form/source-details-form.component'
 import { EndMigrationComponent } from '../end-migration/end-migration.component'
-import { IDataflowConfig, ISetUpConnectionProfile } from 'src/app/model/profile'
+import { IDataflowConfig, IDataprocConfig, ISetUpConnectionProfile} from 'src/app/model/profile'
 import { DataflowFormComponent } from '../dataflow-form/dataflow-form.component'
 import ISpannerConfig from 'src/app/model/spanner-config'
+import { DataprocFormComponent } from '../dataproc-form/dataproc-form.component'
 @Component({
   selector: 'app-prepare-migration',
   templateUrl: './prepare-migration.component.html',
@@ -36,6 +37,7 @@ export class PrepareMigrationComponent implements OnInit {
   isSourceConnectionProfileSet: boolean = false
   isTargetConnectionProfileSet: boolean = false
   isDataflowConfigurationSet: boolean = false
+  isDataprocConfigurationSet: boolean = false
   isSourceDetailsSet: boolean = false
   isTargetDetailSet: boolean = false
   isMigrationDetailSet: boolean = false
@@ -93,6 +95,12 @@ export class PrepareMigrationComponent implements OnInit {
     SpannerInstanceID: '',
     IsMetadataDbCreated: false,
     IsConfigValid: false
+  }
+
+  dataprocConfig: IDataprocConfig = {
+    Subnetwork: localStorage.getItem(Dataproc.Subnetwork) as string,
+    Hostname: localStorage.getItem(Dataproc.Hostname) as string,
+    Port: localStorage.getItem(Dataproc.Port) as string
   }
 
   refreshMigrationMode() {
@@ -227,6 +235,9 @@ export class PrepareMigrationComponent implements OnInit {
     if (localStorage.getItem(Dataflow.IsDataflowConfigSet) != null) {
       this.isDataflowConfigurationSet = (localStorage.getItem(Dataflow.IsDataflowConfigSet) as string === 'true')
     }
+    if (localStorage.getItem(Dataproc.IsDataprocConfigSet) != null) {
+      this.isDataprocConfigurationSet = (localStorage.getItem(Dataproc.IsDataprocConfigSet) as string === 'true')
+    }
     if (localStorage.getItem(MigrationDetails.IsTargetConnectionProfileSet) != null) {
       this.isTargetConnectionProfileSet =
         (localStorage.getItem(MigrationDetails.IsTargetConnectionProfileSet) as string) === 'true'
@@ -297,6 +308,10 @@ export class PrepareMigrationComponent implements OnInit {
     localStorage.removeItem(Dataflow.IsDataflowConfigSet)
     localStorage.removeItem(Dataflow.Network)
     localStorage.removeItem(Dataflow.Subnetwork)
+    localStorage.removeItem(Dataproc.IsDataprocConfigSet)
+    localStorage.removeItem(Dataproc.Subnetwork)
+    localStorage.removeItem(Dataproc.Hostname)
+    localStorage.removeItem(Dataproc.Port)
     localStorage.removeItem(Dataflow.HostProjectId)
     localStorage.removeItem(MigrationDetails.IsMigrationInProgress)
     localStorage.removeItem(MigrationDetails.HasSchemaMigrationStarted)
@@ -360,6 +375,22 @@ export class PrepareMigrationComponent implements OnInit {
       this.isDataflowConfigurationSet = localStorage.getItem(Dataflow.IsDataflowConfigSet) as string === 'true'
     }
     )
+  }
+
+  openDataprocForm() {
+    let dialogRef = this.dialog.open(DataprocFormComponent, {
+      width: '30vw',
+      minWidth: '400px',
+      maxWidth: '500px',
+    })
+    dialogRef.afterClosed().subscribe(() => {
+      this.dataprocConfig = {
+        Subnetwork: localStorage.getItem(Dataproc.Subnetwork) as string,
+        Hostname: localStorage.getItem(Dataproc.Hostname) as string,
+        Port: localStorage.getItem(Dataproc.Port) as string
+      }
+      this.isDataprocConfigurationSet = localStorage.getItem(Dataproc.IsDataprocConfigSet) as string === 'true'
+    })
   }
 
   endMigration() {
@@ -441,18 +472,19 @@ export class PrepareMigrationComponent implements OnInit {
     })
   }
 
-  //TODO: eenclona@ will update with correct payload for dataproc migration
-  // also considering data only vs schema only vs data and schema
+
   migrate() {
     this.resetValues()
     let payload: IMigrationDetails = {
       TargetDetails: this.targetDetails,
       DataflowConfig: this.dataflowConfig,
+      DataprocConfig: this.dataprocConfig,
       MigrationType: this.selectedMigrationType,
       MigrationMode: this.selectedMigrationMode,
     }
     this.fetch.migrate(payload).subscribe({
       next: () => {
+        //TODO: eenclona@ will update this with migration status of dataproc job
         if (this.selectedMigrationMode == MigrationModes.dataOnly) {
           if (this.selectedMigrationType == MigrationTypes.bulkMigration) {
             this.hasDataMigrationStarted = true
