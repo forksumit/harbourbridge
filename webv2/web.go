@@ -1700,9 +1700,6 @@ func getSourceAndTargetProfiles(sessionState *session.SessionState, details migr
 		sourceProfileString = sourceProfileString + fmt.Sprintf(",streamingCfg=%v", fileName)
 	} else if details.MigrationType == helpers.DATAPROC_MIGRATION {
 		//TODO: eenclona@ do we need to modify session state here?
-		//do we need tpo build sourceProfileStrin here?
-		//set conn.dataproc boolean to be true somewhere
-		//println("before overriding targetconfig")
 
 		//profiles.TargetProfile{}.Config["hostname"] = details.DataprocConfig.Hostname
 		//profiles.TargetProfile{}.Config["port"] = details.DataprocConfig.Port
