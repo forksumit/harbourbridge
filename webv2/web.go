@@ -1593,7 +1593,6 @@ func updateProgress(w http.ResponseWriter, r *http.Request) {
 func migrate(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("request started", "method", r.Method, "path", r.URL.Path)
-	println("inside migrate method")
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println("request's body Read Error")
@@ -1701,23 +1700,15 @@ func getSourceAndTargetProfiles(sessionState *session.SessionState, details migr
 	} else if details.MigrationType == helpers.DATAPROC_MIGRATION {
 		//TODO: eenclona@ do we need to modify session state here?
 
-		//profiles.TargetProfile{}.Config["hostname"] = details.DataprocConfig.Hostname
-		//profiles.TargetProfile{}.Config["port"] = details.DataprocConfig.Port
 		//TODO: eenclona@ this is from default else statement below must modify
 		sessionState.Conv.Audit.MigrationRequestId = "HB-" + uuid.New().String()
 		sessionState.Bucket = strings.ToLower(sessionState.Conv.Audit.MigrationRequestId)
 		sessionState.RootPath = "/"
 		//////
 
-		//cfgoverrides["subnetwork"] = details.DataprocConfig.Subnetwork
-
 		dprocConfig := helpers.DATAPROC_MIGRATION
-		//tgtprofile = *&profiles.TargetProfile{}
-		//.Config["subnetwork"] = details.DataprocConfig.Subnetwork
-
 		sourceProfileString = sourceProfileString + fmt.Sprintf(",dprocCfg=%v", dprocConfig)
 		targetProfileString = targetProfileString + fmt.Sprintf(",dpsubnetwork=%v,dphostname=%v,dpport=%v,targetdb=%v", details.DataprocConfig.Subnetwork, details.DataprocConfig.Hostname, details.DataprocConfig.Port, details.TargetDetails.TargetDB)
-		println("***********target profile string : " + targetProfileString)
 
 	} else {
 		sessionState.Conv.Audit.MigrationRequestId = "HB-" + uuid.New().String()
@@ -1729,7 +1720,6 @@ func getSourceAndTargetProfiles(sessionState *session.SessionState, details migr
 		return profiles.SourceProfile{}, profiles.TargetProfile{}, utils.IOStreams{}, "", fmt.Errorf("error while getting source database: %v", err)
 	}
 	sourceProfile, targetProfile, ioHelper, dbName, err := cmd.PrepareMigrationPrerequisites(sourceProfileString, targetProfileString, source)
-
 	if err != nil && sourceDBConnectionDetails.ConnectionType != helpers.SESSION_FILE_MODE {
 		return profiles.SourceProfile{}, profiles.TargetProfile{}, utils.IOStreams{}, "", fmt.Errorf("error while preparing prerequisites for migration: %v", err)
 	}
