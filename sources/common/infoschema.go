@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 
 	sp "cloud.google.com/go/spanner"
@@ -137,23 +138,18 @@ func ProcessData(conv *internal.Conv, infoSchema InfoSchema) {
 	}
 }
 
-func ProcessDataWithDataproc(conv *internal.Conv, infoSchema InfoSchema, hostname string, port string, username string, pwd string) {
+func ProcessDataWithDataproc(conv *internal.Conv, infoSchema InfoSchema, dataprocConfig map[string]string) {
 	// Tables are ordered in alphabetical order with one exception: interleaved
 	// tables appear after the population of their parent table.
 	tableIds := ddl.GetSortedTableIdsBySpName(conv.SpSchema)
 
-	for _, tableId := range tableIds {
-		srcSchema := conv.SrcSchema[tableId]
-		spSchema, ok := conv.SpSchema[tableId]
-		if !ok {
-			conv.Stats.BadRows[srcSchema.Name] += conv.Stats.Rows[srcSchema.Name]
-			conv.Unexpected(fmt.Sprintf("Can't get cols and schemas for table %s:ok=%t",
-				srcSchema.Name, ok))
-			continue
-		}
-		// Extract spColds without synthetic primary key columnn id.
-		colIds := RemoveSynthId(conv, tableId, spSchema.ColIds)
-		err := infoSchema.ProcessData(conv, tableId, srcSchema, colIds, spSchema)
+	for _, spannerTable := range orderTableNames {
+		srcTable, _ := internal.GetSourceTable(conv, spannerTable)
+		srcSchema := conv.SrcSchema[srcTable]
+
+		primaryKeys, _, _ := infoSchema.GetConstraints(conv, SchemaAndName{Name: srcTable, Schema: srcSchema.Schema})
+
+		err := TriggerDataprocTemplate(srcTable, srcSchema.Schema, strings.Join(primaryKeys, ","), dataprocConfig) //infoSchema.ProcessData(conv, srcTable, srcSchema, spTable, spCols, spSchema)
 		if err != nil {
 			return
 		}
@@ -164,7 +160,7 @@ func ProcessDataWithDataproc(conv *internal.Conv, infoSchema InfoSchema, hostnam
 }
 
 // Function to trigger dataproc template
-func TriggerDataprocTemplate(srcTable string, srcSchema string, hostname string, port string, username string, pwd string) error {
+func TriggerDataprocTemplate(srcTable string, srcSchema string, primaryKeys string, dataprocConfig map[string]string) error {
 	ctx := context.Background()
 
 	println("Triggering Dataproc template for " + srcSchema + "." + srcTable)
@@ -188,7 +184,7 @@ func TriggerDataprocTemplate(srcTable string, srcSchema string, hostname string,
 			EnvironmentConfig: &dataprocpb.EnvironmentConfig{
 				ExecutionConfig: &dataprocpb.ExecutionConfig{
 					Network: &dataprocpb.ExecutionConfig_SubnetworkUri{
-						SubnetworkUri: "projects/yadavaja-sandbox/regions/us-west1/subnetworks/test-subnet1",
+						SubnetworkUri: dataprocConfig["subnet"],
 					},
 				},
 			},
@@ -200,21 +196,21 @@ func TriggerDataprocTemplate(srcTable string, srcSchema string, hostname string,
 					Args: []string{"--template",
 						"JDBCTOSPANNER",
 						"--templateProperty",
-						"project.id=yadavaja-sandbox",
+						"project.id=" + dataprocConfig["project"],
 						"--templateProperty",
-						"jdbctospanner.jdbc.url=jdbc:mysql://" + hostname + ":" + port + "/" + srcSchema + "?user=" + username + "&password=" + pwd,
+						"jdbctospanner.jdbc.url=jdbc:mysql://" + dataprocConfig["hostname"] + ":" + dataprocConfig["port"] + "/" + srcSchema + "?user=" + dataprocConfig["user"] + "&password=" + dataprocConfig["pwd"],
 						"--templateProperty",
 						"jdbctospanner.jdbc.driver.class.name=com.mysql.jdbc.Driver",
 						"--templateProperty",
 						"jdbctospanner.sql=select * from " + srcSchema + "." + srcTable + " LIMIT 5",
 						"--templateProperty",
-						"jdbctospanner.output.instance=dataproc-spark-test",
+						"jdbctospanner.output.instance=" + dataprocConfig["instance"],
 						"--templateProperty",
-						"jdbctospanner.output.database=eenclona-test-db",
+						"jdbctospanner.output.database=" + dataprocConfig["targetdb"],
 						"--templateProperty",
 						"jdbctospanner.output.table=" + srcTable,
 						"--templateProperty",
-						"jdbctospanner.output.primaryKey=keynumber",
+						"jdbctospanner.output.primaryKey=" + primaryKeys,
 						"--templateProperty",
 						"jdbctospanner.output.saveMode=Append"},
 					JarFileUris: []string{"file:///usr/lib/spark/external/spark-avro.jar",

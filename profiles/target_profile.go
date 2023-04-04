@@ -53,9 +53,42 @@ type TargetProfileConnection struct {
 	Sp TargetProfileConnectionSpanner
 }
 
+type DataprocConfig struct {
+	Hostname   string
+	Subnetwork string
+	Port       string
+	TargetDB   string
+}
+
 type TargetProfile struct {
-	Ty   TargetProfileType
-	Conn TargetProfileConnection
+	TargetDb string
+	Ty       TargetProfileType
+	Conn     TargetProfileConnection
+	Dc       DataprocConfig
+}
+
+// ToLegacyTargetDb converts source-profile to equivalent legacy global flag
+// -target-db etc since the rest of the codebase still uses the same.
+// TODO: Deprecate this function and pass around TargetProfile across the
+// codebase wherever information about target connection is required.
+func (trg TargetProfile) ToLegacyTargetDb() string {
+	switch trg.Ty {
+	case TargetProfileTypeConnection:
+		{
+			conn := trg.Conn
+			switch conn.Ty {
+			case TargetProfileConnectionTypeSpanner:
+				{
+					sp := conn.Sp
+					return utils.DialectToTarget(sp.Dialect)
+				}
+			default:
+				return constants.TargetSpanner
+			}
+		}
+	default:
+		return constants.TargetSpanner
+	}
 }
 
 // This expects that GetResourceIds has already been called once and the project, instance and dbName
@@ -129,6 +162,7 @@ func NewTargetProfile(s string) (TargetProfile, error) {
 	}
 
 	sp := TargetProfileConnectionSpanner{}
+	dc := DataprocConfig{}
 	if endpoint, ok := params["endpoint"]; ok {
 		sp.Endpoint = endpoint
 	}
@@ -151,5 +185,5 @@ func NewTargetProfile(s string) (TargetProfile, error) {
 	}
 
 	conn := TargetProfileConnection{Ty: TargetProfileConnectionTypeSpanner, Sp: sp}
-	return TargetProfile{Ty: TargetProfileTypeConnection, Conn: conn}, nil
+	return TargetProfile{Ty: TargetProfileTypeConnection, Conn: conn, Dc: dc}, nil
 }
