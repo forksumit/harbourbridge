@@ -50,6 +50,7 @@ export class PrepareMigrationComponent implements OnInit {
   selectedMigrationType: string = MigrationTypes.lowDowntimeMigration
   isMigrationInProgress: boolean = false
   isLowDtMigrationRunning: boolean = false
+  isDprocMigrationRunning: boolean = false
   isResourceGenerated: boolean = false
   generatingResources: boolean = false
   errorMessage: string = ''
@@ -70,6 +71,8 @@ export class PrepareMigrationComponent implements OnInit {
     DataStreamJobUrl: '',
     DataflowJobName: '',
     DataflowJobUrl: '',
+    DataprocJobUrls: [],
+    DataprocJobIds: [],
   }
   region: string = ''
   instance: string = ''
@@ -522,7 +525,8 @@ export class PrepareMigrationComponent implements OnInit {
 
   subscribeMigrationProgress() {
     var displayStreamingMsg = false
-    this.subscription = interval(5000).subscribe((x) => {
+    var displayDataprocMsg = false
+    this.subscription = interval(5000).subscribe((x => {
       this.fetch.getProgress().subscribe({
         next: (res: IProgress) => {
           if (res.ErrorMessage == '') {
@@ -553,8 +557,9 @@ export class PrepareMigrationComponent implements OnInit {
                   this.hasDataMigrationStarted.toString()
                 )
               }
-            } else if (res.ProgressStatus == ProgressStatus.DataMigrationComplete) {
-              if (this.selectedMigrationType != MigrationTypes.lowDowntimeMigration) {
+            }
+            else if (res.ProgressStatus == ProgressStatus.DataMigrationComplete) {
+              if (this.selectedMigrationType != MigrationTypes.lowDowntimeMigration && this.selectedMigrationType != MigrationTypes.dataprocMigration) {
                 this.hasDataMigrationStarted = true
                 localStorage.setItem(
                   MigrationDetails.HasDataMigrationStarted,
@@ -577,10 +582,18 @@ export class PrepareMigrationComponent implements OnInit {
                 this.hasDataMigrationStarted.toString()
               )
               localStorage.setItem(MigrationDetails.DataMigrationProgress, res.Progress.toString())
-              this.dataMigrationProgress = parseInt(
-                localStorage.getItem(MigrationDetails.DataMigrationProgress) as string
-              )
-            } else if (res.ProgressStatus == ProgressStatus.ForeignKeyUpdateComplete) {
+              this.dataMigrationProgress = parseInt(localStorage.getItem(MigrationDetails.DataMigrationProgress) as string)
+
+              if (this.selectedMigrationType == MigrationTypes.dataprocMigration) {
+                this.markSchemaMigrationComplete()
+                if (!displayDataprocMsg) {
+                  this.snack.openSnackBar('Setting up Dataproc jobs', 'Close')
+                  displayDataprocMsg = true
+                }
+                this.fetchGeneratedResources()
+              }
+            }
+            else if (res.ProgressStatus == ProgressStatus.ForeignKeyUpdateComplete) {
               this.markMigrationComplete()
             }
             // Checking for foreign key update in progress
@@ -623,6 +636,7 @@ export class PrepareMigrationComponent implements OnInit {
             this.foreignKeyProgressMessage = 'Foreign key update cancelled!'
             this.generatingResources = false
             this.isLowDtMigrationRunning = false
+            this.isDprocMigrationRunning = false
             this.clearLocalStorage()
           }
         },
@@ -674,6 +688,9 @@ export class PrepareMigrationComponent implements OnInit {
     if (this.selectedMigrationType === MigrationTypes.lowDowntimeMigration) {
       this.isLowDtMigrationRunning = true
     }
+    if (this.selectedMigrationType === MigrationTypes.dataprocMigration) {
+      this.isDprocMigrationRunning = true
+    }
   }
 
   markMigrationComplete() {
@@ -711,6 +728,8 @@ export class PrepareMigrationComponent implements OnInit {
       DataStreamJobUrl: '',
       DataflowJobName: '',
       DataflowJobUrl: '',
+      DataprocJobUrls: [],
+      DataprocJobIds: []
     }
     this.initializeLocalStorage()
   }
