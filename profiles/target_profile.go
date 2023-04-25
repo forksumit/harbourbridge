@@ -61,34 +61,9 @@ type DataprocConfig struct {
 }
 
 type TargetProfile struct {
-	TargetDb string
-	Ty       TargetProfileType
-	Conn     TargetProfileConnection
-	Dc       DataprocConfig
-}
-
-// ToLegacyTargetDb converts source-profile to equivalent legacy global flag
-// -target-db etc since the rest of the codebase still uses the same.
-// TODO: Deprecate this function and pass around TargetProfile across the
-// codebase wherever information about target connection is required.
-func (trg TargetProfile) ToLegacyTargetDb() string {
-	switch trg.Ty {
-	case TargetProfileTypeConnection:
-		{
-			conn := trg.Conn
-			switch conn.Ty {
-			case TargetProfileConnectionTypeSpanner:
-				{
-					sp := conn.Sp
-					return utils.DialectToTarget(sp.Dialect)
-				}
-			default:
-				return constants.TargetSpanner
-			}
-		}
-	default:
-		return constants.TargetSpanner
-	}
+	Ty   TargetProfileType
+	Conn TargetProfileConnection
+	Dc   DataprocConfig
 }
 
 // This expects that GetResourceIds has already been called once and the project, instance and dbName
@@ -177,6 +152,18 @@ func NewTargetProfile(s string) (TargetProfile, error) {
 	}
 	if dialect, ok := params["dialect"]; ok {
 		sp.Dialect = strings.ToLower(dialect)
+	}
+	if dpsubnet, ok := params["dpsubnetwork"]; ok {
+		dc.Subnetwork = dpsubnet
+	}
+	if dphost, ok := params["dphostname"]; ok {
+		dc.Hostname = dphost
+	}
+	if dpport, ok := params["dpport"]; ok {
+		dc.Port = dpport
+	}
+	if dptarget, ok := params["targetdb"]; ok {
+		dc.TargetDB = dptarget
 	}
 	if sp.Dialect == "" {
 		sp.Dialect = constants.DIALECT_GOOGLESQL

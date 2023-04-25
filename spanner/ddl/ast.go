@@ -394,42 +394,6 @@ func NewSchema() Schema {
 // tables appear after the definition of their parent table.
 // TODO: Move this method to mapping.go and preserve the table names in sorted
 // order in conv so that we don't need to order the table names multiple times.
-func OrderTables(s Schema) []string {
-	var tableNames, sortedTableNames []string
-	for t := range s {
-		tableNames = append(tableNames, t)
-	}
-	sort.Strings(tableNames)
-	tableQueue := tableNames
-	tableAdded := make(map[string]bool)
-	for len(tableQueue) > 0 {
-		tableName := tableQueue[0]
-		table := s[tableName]
-		tableQueue = tableQueue[1:]
-
-		// Add table t if either:
-		// a) t is not interleaved in another table, or
-		// b) t is interleaved in another table and that table has already been added to the list.
-		if table.ParentId == "" || tableAdded[table.ParentId] {
-			sortedTableNames = append(sortedTableNames, tableName)
-			tableAdded[tableName] = true
-		} else {
-			// We can't add table t now because its parent hasn't been added.
-			// Add it at end of tables and we'll try again later.
-			// We might need multiple iterations to add chains of interleaved tables,
-			// but we will always make progress because interleaved tables can't
-			// have cycles. In principle this could be O(n^2), but in practice chains
-			// of interleaved tables are small.
-			tableQueue = append(tableQueue, tableName)
-		}
-	}
-	return sortedTableNames
-}
-
-// Tables are ordered in alphabetical order with one exception: interleaved
-// tables appear after the definition of their parent table.
-// TODO: Move this method to mapping.go and preserve the table names in sorted
-// order in conv so that we don't need to order the table names multiple times.
 func GetSortedTableIdsBySpName(s Schema) []string {
 	var tableNames, sortedTableNames, sortedTableIds []string
 	tableNameIdMap := map[string]string{}

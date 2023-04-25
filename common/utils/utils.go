@@ -664,13 +664,6 @@ func CompareSchema(conv1, conv2 *internal.Conv) error {
 	return nil
 }
 
-func DialectToTarget(dialect string) string {
-	if strings.ToLower(dialect) == constants.DIALECT_POSTGRESQL {
-		return constants.TargetExperimentalPostgres
-	}
-	return constants.TargetSpanner
-}
-
 func TargetDbToDialect(targetDb string) string {
 	if targetDb == constants.TargetExperimentalPostgres {
 		return constants.DIALECT_POSTGRESQL

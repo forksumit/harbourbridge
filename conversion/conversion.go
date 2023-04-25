@@ -240,8 +240,6 @@ func dataFromDatabase(ctx context.Context, sourceProfile profiles.SourceProfile,
 	}
 	var streamInfo map[string]interface{}
 	if sourceProfile.Conn.Dataproc {
-		//TODO if user choose dataproc template migration path
-		println("**********Dataproc flow started")
 		return performDataprocMigration(sourceProfile, targetProfile, config, conv, client, infoSchema)
 	}
 	if sourceProfile.Conn.Streaming {

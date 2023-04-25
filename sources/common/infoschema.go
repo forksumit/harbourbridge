@@ -139,12 +139,9 @@ func ProcessData(conv *internal.Conv, infoSchema InfoSchema) {
 }
 
 func ProcessDataWithDataproc(conv *internal.Conv, infoSchema InfoSchema, dataprocConfig map[string]string) error {
-	// Tables are ordered in alphabetical order with one exception: interleaved
-	// tables appear after the population of their parent table.
 
-	//orderTableNames := ddl.OrderTables(conv.SpSchema)
-	orderTableNames := ddl.GetSortedTableIdsBySpName(conv.SpSchema)
-	numberOfTables := int64(len(orderTableNames))
+	orderTableNamesByID := ddl.GetSortedTableIdsBySpName(conv.SpSchema)
+	numberOfTables := int64(len(orderTableNamesByID))
 
 	if !conv.Audit.DryRun {
 		conv.Audit.Progress = *internal.NewProgress(numberOfTables, "Writing data to Spanner via Dataproc", internal.Verbose(), false, int(internal.DataWriteInProgress))
@@ -152,23 +149,16 @@ func ProcessDataWithDataproc(conv *internal.Conv, infoSchema InfoSchema, datapro
 
 	progressCtr := 0
 
-	println("******printing orderTableNames: ")
-	fmt.Println(orderTableNames)
-	for _, spannerTable := range orderTableNames {
+	fmt.Println(orderTableNamesByID)
+	for _, spannerTableID := range orderTableNamesByID {
 
-		println("******** spannerTable is: " + spannerTable)
-		srcTable, err := internal.GetSourceTable(conv, spannerTable)
+		srcTable := conv.SrcSchema[spannerTableID].Name
 
-		println("******** srcTable is: " + srcTable)
-		println("******** srcTable err is: " + err.Error())
-
-		srcSchema := conv.SrcSchema[spannerTable]
-
-		println("******** srcSchema is: " + srcSchema.Schema)
+		srcSchema := conv.SrcSchema[spannerTableID]
 
 		primaryKeys, _, _ := infoSchema.GetConstraints(conv, SchemaAndName{Name: srcTable, Schema: srcSchema.Schema})
 
-		id, err := TriggerDataprocTemplate(srcTable, srcSchema.Schema, strings.Join(primaryKeys, ","), dataprocConfig) //infoSchema.ProcessData(conv, srcTable, srcSchema, spTable, spCols, spSchema)
+		id, err := TriggerDataprocTemplate(srcTable, srcSchema.Schema, strings.Join(primaryKeys, ","), dataprocConfig)
 		if err != nil {
 			return err
 		}
