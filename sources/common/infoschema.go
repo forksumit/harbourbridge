@@ -142,7 +142,8 @@ func ProcessDataWithDataproc(conv *internal.Conv, infoSchema InfoSchema, datapro
 	// Tables are ordered in alphabetical order with one exception: interleaved
 	// tables appear after the population of their parent table.
 
-	orderTableNames := ddl.OrderTables(conv.SpSchema)
+	//orderTableNames := ddl.OrderTables(conv.SpSchema)
+	orderTableNames := ddl.GetSortedTableIdsBySpName(conv.SpSchema)
 	numberOfTables := int64(len(orderTableNames))
 
 	if !conv.Audit.DryRun {
@@ -150,10 +151,20 @@ func ProcessDataWithDataproc(conv *internal.Conv, infoSchema InfoSchema, datapro
 	}
 
 	progressCtr := 0
+
+	println("******printing orderTableNames: ")
+	fmt.Println(orderTableNames)
 	for _, spannerTable := range orderTableNames {
 
-		srcTable, _ := internal.GetSourceTable(conv, spannerTable)
-		srcSchema := conv.SrcSchema[srcTable]
+		println("******** spannerTable is: " + spannerTable)
+		srcTable, err := internal.GetSourceTable(conv, spannerTable)
+
+		println("******** srcTable is: " + srcTable)
+		println("******** srcTable err is: " + err.Error())
+
+		srcSchema := conv.SrcSchema[spannerTable]
+
+		println("******** srcSchema is: " + srcSchema.Schema)
 
 		primaryKeys, _, _ := infoSchema.GetConstraints(conv, SchemaAndName{Name: srcTable, Schema: srcSchema.Schema})
 
@@ -260,14 +271,17 @@ func TriggerDataprocTemplate(srcTable string, srcSchema string, primaryKeys stri
 
 	resp, err := op.Wait(ctx)
 	if err != nil {
-		println("error completing the batch: %s\n", err)
+		println("error completing the batch: " + err.Error() + " \n")
 		println("Failing data migration from Dataproc template for " + srcSchema + "." + srcTable + " with batch id: " + resp.GetName())
+		return resp.GetName(), err
 	}
 
-	println("Batch Name: " + resp.GetName())
+	batchName := resp.GetName()
 
-	return nil
-}
+	splittedBatchName := strings.Split(batchName, "/")
+	jobId := splittedBatchName[5]
+
+	return jobId, err
 }
 
 // SetRowStats populates conv with the number of rows in each table.

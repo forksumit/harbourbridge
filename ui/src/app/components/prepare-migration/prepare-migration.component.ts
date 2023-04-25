@@ -650,7 +650,7 @@ export class PrepareMigrationComponent implements OnInit {
           this.clearLocalStorage()
         },
       })
-    })
+    }));
   }
 
   markForeignKeyUpdateInitiation() {

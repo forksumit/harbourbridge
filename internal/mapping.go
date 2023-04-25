@@ -53,6 +53,20 @@ func GetSpannerTable(conv *Conv, tableId string) (string, error) {
 	return spTableName, nil
 }
 
+// GetSourceTable maps a spanner table name into a legal source DB table
+// name.
+func GetSourceTable(conv *Conv, spTable string) (string, error) {
+	if spTable == "" {
+		return "", fmt.Errorf("bad parameter: table string is empty")
+	}
+
+	if srcTable, found := conv.ToSource[spTable]; found {
+		return srcTable.Name, nil
+	} else {
+		return "", fmt.Errorf("bad parameter: spanner table mapping not found ")
+	}
+}
+
 // GetSpannerCol maps a source DB table/column into a legal Spanner column
 // name. If mustExist is true, we return error if the column is new.
 // Note that source DB column names can be essentially any string, but
@@ -128,7 +142,9 @@ func GetSpannerCols(conv *Conv, tableId string, srcCols []string) ([]string, err
 // of the following things:
 // a) the new foreign key name is legal
 // b) the new foreign key name doesn't clash with other Spanner
+//
 //	foreign key names
+//
 // Note that foreign key constraint names in Spanner have to be globally unique
 // (across the database). But in some source databases, such as PostgreSQL,
 // they only have to be unique for a table. Hence we must map each source
@@ -144,7 +160,9 @@ func ToSpannerForeignKey(conv *Conv, srcFkName string) string {
 // We need to make sure of the following things:
 // a) the new index name is legal
 // b) the new index name doesn't clash with other Spanner
+//
 //	index names
+//
 // Note that index key constraint names in Spanner have to be globally unique
 // (across the database). But in some source databases, such as MySQL,
 // they only have to be unique for a table. Hence we must map each source

@@ -153,11 +153,13 @@ type StreamingCfg struct {
 	TmpDir        string        `json:"tmpDir"`
 }
 type DataflowCfg struct {
-	JobName    string `json:"JobName"`
-	Location   string `json:"Location"`
-	Network    string `json:"Network"`
-	Subnetwork string `json:"Subnetwork"`
+	JobName       string `json:"JobName"`
+	Location      string `json:"Location"`
+	Network       string `json:"Network"`
+	Subnetwork    string `json:"Subnetwork"`
+	HostProjectId string `json:"HostProjectId"`
 }
+
 type ConnectionConfig struct {
 	Name     string `json:"name"`
 	Location string `json:"location"`
