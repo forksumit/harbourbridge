@@ -192,6 +192,21 @@ func TriggerDataprocTemplate(srcTable string, srcSchema string, primaryKeys stri
 	region_string := subnet[0:strings.Index(subnet, "/subnetworks")]
 	location := subnet[strings.LastIndex(region_string, "/")+1 : strings.LastIndex(subnet, "/subnetworks")]
 
+	// TODO: move to common utils
+	// Adding all template configs to a map
+	templateConfig := map[string]string{}
+	if dataprocConfig["source"] == "mysql" {
+		templateConfig["jdbcurl"] = "jdbc:mysql://" + dataprocConfig["hostname"] + ":" + dataprocConfig["port"] + "/" + dataprocConfig["db"] + "?user=" + dataprocConfig["user"] + "&password=" + dataprocConfig["pwd"]
+		templateConfig["jdbcdriver"] = "com.mysql.jdbc.Driver"
+		templateConfig["jdbcsql"] = "select * from " + srcSchema + "." + srcTable
+		templateConfig["jdbcjar"] = "gs://dataproc-templates/jars/mysql-connector-java.jar"
+	} else if dataprocConfig["source"] == "pg" {
+		templateConfig["jdbcurl"] = "jdbc:postgresql://" + dataprocConfig["hostname"] + ":" + dataprocConfig["port"] + "/" + dataprocConfig["db"] + "?user=" + dataprocConfig["user"] + "&password=" + dataprocConfig["pwd"]
+		templateConfig["jdbcdriver"] = "org.postgresql.Driver"
+		templateConfig["jdbcsql"] = "select * from " + srcTable
+		templateConfig["jdbcjar"] = "gs://dataproc-templates/jars/postgresql-42.2.6.jar"
+	}
+
 	// Create the batch controller cliermnt.
 	batchEndpoint := fmt.Sprintf("%s-dataproc.googleapis.com:443", location)
 	batchClient, err := dataproc.NewBatchControllerClient(ctx, option.WithEndpoint(batchEndpoint))
@@ -226,11 +241,11 @@ func TriggerDataprocTemplate(srcTable string, srcSchema string, primaryKeys stri
 						"--templateProperty",
 						"project.id=" + dataprocConfig["project"],
 						"--templateProperty",
-						"jdbctospanner.jdbc.url=jdbc:mysql://" + dataprocConfig["hostname"] + ":" + dataprocConfig["port"] + "/" + srcSchema + "?user=" + dataprocConfig["user"] + "&password=" + dataprocConfig["pwd"],
+						"jdbctospanner.jdbc.url=" + templateConfig["jdbcurl"],
 						"--templateProperty",
-						"jdbctospanner.jdbc.driver.class.name=com.mysql.jdbc.Driver",
+						"jdbctospanner.jdbc.driver.class.name=" + templateConfig["jdbcdriver"],
 						"--templateProperty",
-						"jdbctospanner.sql=select * from " + srcSchema + "." + srcTable,
+						"jdbctospanner.sql=" + templateConfig["jdbcsql"],
 						"--templateProperty",
 						"jdbctospanner.output.instance=" + dataprocConfig["instance"],
 						"--templateProperty",
@@ -247,7 +262,7 @@ func TriggerDataprocTemplate(srcTable string, srcSchema string, primaryKeys stri
 						"jdbctospanner.jdbc.fetchsize=1000"},
 					JarFileUris: []string{"file:///usr/lib/spark/external/spark-avro.jar",
 						"gs://dataproc-templates-binaries/latest/java/dataproc-templates.jar",
-						"gs://dataproc-templates/jars/mysql-connector-java.jar"},
+						templateConfig["jdbcjar"]},
 				},
 			},
 		},

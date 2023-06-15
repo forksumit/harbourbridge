@@ -395,6 +395,9 @@ func NewSourceProfileConnection(source string, params map[string]string) (Source
 			if conn.Pg.StreamingConfig != "" {
 				conn.Streaming = true
 			}
+			if params["dprocCfg"] != "" {
+				conn.Dataproc = true
+			}
 		}
 	case "dynamodb":
 		{

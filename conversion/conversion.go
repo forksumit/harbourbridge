@@ -191,13 +191,26 @@ func performDataprocMigration(sourceProfile profiles.SourceProfile, targetProfil
 	common.SetRowStats(conv, infoSchema)
 	batchWriter := populateDataConv(conv, config, client)
 
-	//Adding all dataproc configs to a map
-
+	// TODO: move to common utils
+	// Adding all dataproc configs to a map
 	dataprocConfig := map[string]string{}
-	dataprocConfig["hostname"] = sourceProfile.Conn.Mysql.Host
-	dataprocConfig["port"] = sourceProfile.Conn.Mysql.Port
-	dataprocConfig["user"] = sourceProfile.Conn.Mysql.User
-	dataprocConfig["pwd"] = sourceProfile.Conn.Mysql.Pwd
+	if sourceProfile.Ty == profiles.SourceProfileTypeConnection {
+		if sourceProfile.Conn.Ty == profiles.SourceProfileConnectionTypeMySQL {
+			dataprocConfig["source"] = "mysql"
+			dataprocConfig["hostname"] = sourceProfile.Conn.Mysql.Host
+			dataprocConfig["port"] = sourceProfile.Conn.Mysql.Port
+			dataprocConfig["user"] = sourceProfile.Conn.Mysql.User
+			dataprocConfig["db"] = sourceProfile.Conn.Mysql.Db
+			dataprocConfig["pwd"] = sourceProfile.Conn.Mysql.Pwd
+		} else if sourceProfile.Conn.Ty == profiles.SourceProfileConnectionTypePostgreSQL {
+			dataprocConfig["source"] = "pg"
+			dataprocConfig["hostname"] = sourceProfile.Conn.Pg.Host
+			dataprocConfig["port"] = sourceProfile.Conn.Pg.Port
+			dataprocConfig["user"] = sourceProfile.Conn.Pg.User
+			dataprocConfig["db"] = sourceProfile.Conn.Pg.Db
+			dataprocConfig["pwd"] = sourceProfile.Conn.Pg.Pwd
+		}
+	}
 	dataprocConfig["targetdb"] = targetProfile.Dc.TargetDB
 	dataprocConfig["instance"] = targetProfile.Conn.Sp.Instance
 	dataprocConfig["project"] = targetProfile.Conn.Sp.Project
