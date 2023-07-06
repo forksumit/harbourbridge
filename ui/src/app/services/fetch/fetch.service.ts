@@ -14,7 +14,7 @@ import IConv, {
 import IDumpConfig, { IConvertFromDumpRequest } from '../../model/dump-config'
 import ISessionConfig from '../../model/session-config'
 import ISpannerConfig from '../../model/spanner-config'
-import IMigrationDetails, { IGeneratedResources, IProgress, ITables } from 'src/app/model/migrate'
+import IMigrationDetails, { IDataprocJobs, IGeneratedResources, IProgress, ITables } from 'src/app/model/migrate'
 import IConnectionProfile, { ICreateConnectionProfileV2, IDataflowConfig, IMigrationProfile } from 'src/app/model/profile'
 import IRule from 'src/app/model/rule'
 
@@ -122,6 +122,10 @@ export class FetchService {
 
   getGeneratedResources() {
     return this.http.get<IGeneratedResources>(`${this.url}/GetGeneratedResources`)
+  }
+
+  getDataprocJobs() {
+    return this.http.get<IDataprocJobs>(`${this.url}/GetDataprocJobs`)
   }
 
   getStaticIps() {
