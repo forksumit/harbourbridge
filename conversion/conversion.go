@@ -332,12 +332,12 @@ func processDataWithDataproc(sourceProfile profiles.SourceProfile, targetProfile
 			srcSchema := conv.SrcSchema[spannerTableID]
 			primaryKeys, _, _ := infoSchema.GetConstraints(conv, common.SchemaAndName{Name: srcTable, Schema: srcSchema.Schema})
 
-			dataprocRequestParams, err := dproc.GetDataprocRequestParams(sourceProfile, targetProfile, srcSchema.Schema, srcTable, strings.Join(primaryKeys, ","), location, subnet)
+			dataprocRequestParams, err := dproc.GetDataprocRequestParams(conv, sourceProfile, targetProfile, spannerTableID, strings.Join(primaryKeys, ","), location, subnet)
 			if err != nil {
 				return err
 			}
 
-			op, err := dproc.TriggerDataprocTemplate(ctx, batchClient, srcTable, srcSchema.Schema, strings.Join(primaryKeys, ","), dataprocRequestParams)
+			op, err := dproc.TriggerDataprocTemplate(ctx, batchClient, dataprocRequestParams)
 			if err != nil {
 				logger.Log.Error(fmt.Sprintf("Failing to trigger Dataproc template for %s.%s", srcSchema.Schema, srcTable))
 				return err
