@@ -53,12 +53,16 @@ const (
 	Numeric string = "NUMERIC"
 	// Json represent JSON type.
 	JSON string = "JSON"
+	// UUID represent UUID type. (preview)
+	UUID string = "UUID"
 	// MaxLength is a sentinel for Type's Len field, representing the MAX value.
 	MaxLength = math.MaxInt64
 	// StringMaxLength represents maximum allowed STRING length.
 	StringMaxLength = 2621440
 	// BytesMaxLength represents maximum allowed BYTES length.
-	BytesMaxLength        = 10485760
+	BytesMaxLength = 10485760
+	// UUIDStringLength represents maximum allowed characters in hexadecimal representation of UUID.
+	UUIDStringLength      = 36
 	MaxNonKeyColumnLength = 1677721600
 
 	// Types specific to Spanner with postgresql dialect, when they differ from
