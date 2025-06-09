@@ -203,6 +203,13 @@ func toSpannerTypeInternal(srcType schema.Type, spType string) (ddl.Type, []inte
 			}
 			return ddl.Type{Name: ddl.String, Len: ddl.MaxLength}, nil
 		}
+	case "uuid":
+		switch spType {
+		case ddl.String:
+			return ddl.Type{Name: ddl.String, Len: ddl.UUIDStringLength}, []internal.SchemaIssue{internal.Widened}
+		default:
+			return ddl.Type{Name: ddl.UUID}, nil
+		}
 	}
 	return ddl.Type{Name: ddl.String, Len: ddl.MaxLength}, []internal.SchemaIssue{internal.NoGoodType}
 }
